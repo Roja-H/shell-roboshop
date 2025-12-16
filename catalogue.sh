@@ -25,23 +25,23 @@ fi
 VALIDATE(){
     if [ $1 -eq 0 ]
     then
-        echo -e "$2 is ... $G SUCCESS $N" | tee -a $LOG_FILE
+        echo -e "$2 is ... $G SUCCESS $N" | tee -a $LOG_FILES
     else
-        echo -e "$2 is ... $R FAILURE $N" | tee -a $LOG_FILE
+        echo -e "$2 is ... $R FAILURE $N" | tee -a $LOG_FILES
         exit 1
     fi
 }
 
-dnf module disable nodejs -y &>>$LOG_FILE
+dnf module disable nodejs -y &>>$LOG_FILES
 VALIDATE $? "Disabling nodejs"
 
-dnf module enable nodejs:20 -y &>>$LOG_FILE
+dnf module enable nodejs:20 -y &>>$LOG_FILES
 VALIDATE $? "enabling nodejs"
 
-dnf install nodejs -y &>>$LOG_FILE
+dnf install nodejs -y &>>$LOG_FILES
 VALIDATE $? "Installing nodejs"
 
-id roboshop &>>$LOG_FILE
+id roboshop &>>$LOG_FILES
 if [ $? -eq 0 ]
    then 
    useradd --system --home /app --shell /sbin/nologin --comment "roboshop system user" roboshop
@@ -50,7 +50,7 @@ else
     echo "roboshop user already exists....skipping"    
 fi 
 
-mkdir -p /app &>>$LOG_FILE
+mkdir -p /app &>>$LOG_FILES
 VALIDATE $? "creating app directory"
 
 curl -o /tmp/catalogue.zip https://roboshop-artifacts.s3.amazonaws.com/catalogue-v3.zip 
@@ -58,7 +58,7 @@ VALIDATE $? "downloading catalogue file"
 
 rm -rf /app/*
 cd /app 
-unzip /tmp/cart.zip &>>$LOG_FILE
+unzip /tmp/cart.zip &>>$LOG_FILES
 VALIDATE $? "unzipping cart"
 
 cp catalogue.sh /etc/systemd/system/catalogue.service
@@ -70,13 +70,13 @@ systemctl start catalogue
 VALIDATE $? "Starting catalogue"
 
 cp mongo.repo vim /etc/yum.repos.d/mongo.repo
-dnf install mongodb-mongosh -y &>>$LOG_FILE
+dnf install mongodb-mongosh -y &>>$LOG_FILES
 VALIDATE $? "Installing MongoDB Client"
 
 STATUS=$(mongosh --host mongodb.daws84s.site --eval 'db.getMongo().getDBNames().indexOf("catalogue")')
 if [ $STATUS -lt 0 ]
 then
-    mongosh --host mongodb.daws84s.site </app/db/master-data.js &>>$LOG_FILE
+    mongosh --host mongodb.daws84s.site </app/db/master-data.js &>>$LOG_FILES
     VALIDATE $? "Loading data into MongoDB"
 else
     echo -e "Data is already loaded ... $Y SKIPPING $N"
