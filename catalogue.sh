@@ -58,8 +58,8 @@ VALIDATE $? "downloading catalogue file"
 
 rm -rf /app/*
 cd /app 
-unzip /tmp/cart.zip &>>$LOG_FILES
-VALIDATE $? "unzipping cart"
+unzip /tmp/catalogue.zip &>>$LOG_FILES
+VALIDATE $? "unzipping catalogue"
 
 cp catalogue.sh /etc/systemd/system/catalogue.service
 VALIDATE $? "copying catalogue file to systemctl"
