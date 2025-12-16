@@ -62,7 +62,7 @@ cd /app
 unzip /tmp/catalogue.zip &>>$LOG_FILES
 VALIDATE $? "unzipping catalogue"
 
-cp catalogue.service /etc/systemd/system/catalogue.service
+cp $SCRIPT_DIR/catalogue.service /etc/systemd/system/catalogue.service
 VALIDATE $? "copying catalogue file to systemctl"
 
 systemctl daemon-reload
