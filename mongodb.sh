@@ -49,4 +49,4 @@ sed -i "s/127.0.0.1/ 0.0.0.0" /etc/mongod.conf &>>$LOG_FILES
 VALIDATE $? "Editing MongoDB conf file for remote connections"
 
 systemctl restart mongod &>>$LOG_FILES
-VALIDATE $? "restarting mongod" 
+VALIDATE $? "restarting mongod"
