@@ -8,6 +8,7 @@ N="\e[0m"
 LOGS_FOLDER="/var/log/shell-roboshop-logs"
 SCRIPT_NAME=$(echo $0 | cut -d "." -f1)
 LOG_FILES="$LOGS_FOLDER/$SCRIPT_NAME.log"
+SCRIPT_DIR=$PWD  # here PWD is /home/ec2-user/shell-roboshop
 
 mkdir -p $LOGS_FOLDER
 echo "script execution started at $(date)" | tee -a $LOG_FILES
@@ -61,7 +62,7 @@ cd /app
 unzip /tmp/catalogue.zip &>>$LOG_FILES
 VALIDATE $? "unzipping catalogue"
 
-cp catalog.service /etc/systemd/system/catalogue.service
+cp catalogue.service /etc/systemd/system/catalogue.service
 VALIDATE $? "copying catalogue file to systemctl"
 
 systemctl daemon-reload
