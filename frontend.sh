@@ -1,62 +1,68 @@
-user nginx;
-worker_processes auto;
-error_log /var/log/nginx/error.log notice;
-pid /run/nginx.pid;
+#!/bin/bash
 
-include /usr/share/nginx/modules/*.conf;
+USERID=$(id -u)
+R="\e[31m"
+G="\e[32m"
+Y="\e[33m"
+N="\e[0m"
+LOGS_FOLDER="/var/log/roboshop-logs"
+SCRIPT_NAME=$(echo $0 | cut -d "." -f1)
+LOG_FILE="$LOGS_FOLDER/$SCRIPT_NAME.log"
+SCRIPT_DIR=$PWD
 
-events {
-    worker_connections 1024;
+mkdir -p $LOGS_FOLDER
+echo "Script started executing at: $(date)" | tee -a $LOG_FILE
+
+# check the user has root priveleges or not
+if [ $USERID -ne 0 ]
+then
+    echo -e "$R ERROR:: Please run this script with root access $N" | tee -a $LOG_FILE
+    exit 1 #give other than 0 upto 127
+else
+    echo "You are running with root access" | tee -a $LOG_FILE
+fi
+
+# validate functions takes input as exit status, what command they tried to install
+VALIDATE(){
+    if [ $1 -eq 0 ]
+    then
+        echo -e "$2 is ... $G SUCCESS $N" | tee -a $LOG_FILE
+    else
+        echo -e "$2 is ... $R FAILURE $N" | tee -a $LOG_FILE
+        exit 1
+    fi
 }
 
-http {
-    log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
-                      '$status $body_bytes_sent "$http_referer" '
-                      '"$http_user_agent" "$http_x_forwarded_for"';
+dnf module disable nginx -y &>>$LOG_FILE
+VALIDATE $? "Disabling Default Nginx"
 
-    access_log  /var/log/nginx/access.log  main;
+dnf module enable nginx:1.24 -y &>>$LOG_FILE
+VALIDATE $? "Enabling Nginx:1.24"
 
-    sendfile            on;
-    tcp_nopush          on;
-    keepalive_timeout   65;
-    types_hash_max_size 4096;
+dnf install nginx -y &>>$LOG_FILE
+VALIDATE $? "Installing Nginx"
 
-    include             /etc/nginx/mime.types;
-    default_type        application/octet-stream;
+systemctl enable nginx  &>>$LOG_FILE
+VALIDATE $? "enabling Nginx"
 
-    include /etc/nginx/conf.d/*.conf;
+systemctl start nginx 
+VALIDATE $? "Starting Nginx"
 
-    server {
-        listen       80;
-        listen       [::]:80;
-        server_name  _;
-        root         /usr/share/nginx/html;
+rm -rf /usr/share/nginx/html/* &>>$LOG_FILE
+VALIDATE $? "Removing default content"
 
-        include /etc/nginx/default.d/*.conf;
+curl -o /tmp/frontend.zip https://roboshop-artifacts.s3.amazonaws.com/frontend-v3.zip &>>$LOG_FILE
+VALIDATE $? "Downloading frontend"
 
-        error_page 404 /404.html;
-        location = /404.html {
-        }
+cd /usr/share/nginx/html 
+unzip /tmp/frontend.zip &>>$LOG_FILE
+VALIDATE $? "unzipping frontend"
 
-        error_page 500 502 503 504 /50x.html;
-        location = /50x.html {
-        }
+rm -rf /etc/nginx/nginx.conf &>>$LOG_FILE
+VALIDATE $? "Remove default nginx conf"
 
-        location /images/ {
-          expires 5s;
-          root   /usr/share/nginx/html;
-          try_files $uri /images/placeholder.jpg;
-        }
-        location /api/catalogue/ { proxy_pass http://catalogue.rojahanumantharaju.site:8080/; }
-        location /api/user/ { proxy_pass http://localhost:8080/; }
-        location /api/cart/ { proxy_pass http://localhost:8080/; }
-        location /api/shipping/ { proxy_pass http://localhost:8080/; }
-        location /api/payment/ { proxy_pass http://localhost:8080/; }
+cp $SCRIPT_DIR/nginx.conf /etc/nginx/nginx.conf
+VALIDATE $? "Copying nginx.conf"
 
-        location /health {
-          stub_status on;
-          access_log off;
-        }
-
-    }
-}
+systemctl restart nginx 
+VALIDATE $? "Restarting nginx"
